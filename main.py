@@ -24,6 +24,11 @@ def preprocess_image(image):
     image = np.expand_dims(image, axis=0)  # Add batch dimension
     return image
 
+@app.get("/predict/")
+async def handle_get_request():
+    """Handles GET requests to /predict/ by returning a friendly message."""
+    return {"message": "Hehe"}
+
 @app.post("/predict/")
 async def predict(file: UploadFile = File(...)):
     """Handles image upload and returns classification results."""
