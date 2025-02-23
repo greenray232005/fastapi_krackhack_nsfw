@@ -1,7 +1,7 @@
 import tensorflow.lite as tflite
 import numpy as np
-from fastapi import FastAPI, UploadFile, File
-from PIL import Image
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from PIL import Image, UnidentifiedImageError
 import io
 
 app = FastAPI()
@@ -27,7 +27,16 @@ def preprocess_image(image):
 @app.post("/predict/")
 async def predict(file: UploadFile = File(...)):
     """Handles image upload and returns classification results."""
-    image = Image.open(io.BytesIO(await file.read())).convert("RGB")
+    # Check if file is empty
+    file_content = await file.read()
+    if not file_content:
+        raise HTTPException(status_code=400, detail="No file uploaded. Please upload an image.")
+
+    try:
+        image = Image.open(io.BytesIO(file_content)).convert("RGB")
+    except UnidentifiedImageError:
+        raise HTTPException(status_code=400, detail="Invalid image format. Please upload a valid image.")
+
     input_data = preprocess_image(image)
 
     # Run inference
@@ -38,5 +47,3 @@ async def predict(file: UploadFile = File(...)):
     # Format response
     response = [{"label": LABELS[i], "confidence": float(output_data[i])} for i in range(len(LABELS))]
     return {"predictions": response}
-
-# Run with: uvicorn main:app --reload
